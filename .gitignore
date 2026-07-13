@@ -63,3 +63,7 @@ Desktop.ini
 docker/db_data/
 docker/redis_data/
 docker/mysql_data/
+
+#Docs
+*.doc
+*.docx
