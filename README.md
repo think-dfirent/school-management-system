@@ -1,4 +1,4 @@
-# School Management System (Cổng Thông Tin Học Tập & Đào Tạo PTIT)
+# School Management System
 
 A modern, enterprise-grade School Management web application designed for administrators, instructors, and students. Built with the **MERN (MongoDB, Express, React, Node.js)** stack and styled with a custom high-end **Enterprise Modern Red** theme system.
 
