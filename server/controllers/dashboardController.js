@@ -29,12 +29,14 @@ const getDashboardStats = async (req, res) => {
             // Dem so lop hoc phan dang active thuoc semester active
             Class.countDocuments(activeSemester ? { semester: activeSemester._id } : {}),
 
-            // Tinh tong doanh thu tuition da thu
+            // Tinh tong doanh thu tuition tuong ung voi semester active
             Tuition.aggregate([
+                { $match: activeSemester ? { semester: activeSemester._id } : {} },
                 {
                     $group: {
                         _id: null,
-                        totalRevenue: { $sum: '$paidAmount' }
+                        totalExpectedTuition: { $sum: '$payableAmount' },
+                        totalCollectedTuition: { $sum: '$paidAmount' }
                     }
                 }
             ]),
@@ -88,13 +90,16 @@ const getDashboardStats = async (req, res) => {
             ])
         ]);
 
-        const totalRevenue = (revenueResult.length > 0) ? revenueResult[0].totalRevenue : 0;
+        const totalExpectedTuition = (revenueResult.length > 0) ? revenueResult[0].totalExpectedTuition : 0;
+        const totalCollectedTuition = (revenueResult.length > 0) ? revenueResult[0].totalCollectedTuition : 0;
 
         res.status(200).json({
             totalStudents: totalStudents || 0,
             totalInstructors: totalInstructors || 0,
             openClasses: openClasses || 0,
-            totalRevenue: totalRevenue || 0,
+            totalRevenue: totalCollectedTuition || 0,
+            totalExpectedTuition: totalExpectedTuition || 0,
+            totalCollectedTuition: totalCollectedTuition || 0,
             studentsByDepartment: studentsByDepartment || [],
             gradeDistribution: gradeDistribution || []
         });

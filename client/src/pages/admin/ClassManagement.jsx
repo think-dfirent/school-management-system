@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { MapPin, School, AlertTriangle, CheckCircle, X, Edit3, Trash2, Calendar, RefreshCw, MoreHorizontal } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 
 const ClassManagement = () => {
@@ -15,6 +16,35 @@ const ClassManagement = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const [searchParams] = useSearchParams();
+  const semesterIdParam = searchParams.get("semesterId");
+  const [semesterFilter, setSemesterFilter] = useState("all");
+
+  useEffect(() => {
+    if (semesterIdParam) {
+      setSemesterFilter(semesterIdParam);
+    }
+  }, [semesterIdParam]);
+
+  const filteredClasses = classes.filter(classItem => {
+    // 1. Pass if 'Tất cả' is selected
+    if (!semesterFilter || semesterFilter === 'all') return true;
+    
+    // 2. Safe check if classItem has a semester
+    if (!classItem.semester) return false;
+
+    // 3. Find the selected semester object in semesters array to get its ObjectId
+    const selectedSem = semesters.find(
+      sem => sem.semesterId === semesterFilter || sem._id === semesterFilter
+    );
+
+    if (!selectedSem) return false;
+
+    // 4. Compare classItem's semester _id with the selected semester's _id
+    return classItem.semester._id?.toString() === selectedSem._id?.toString();
+  });
 
   // Toast alert states (Hoisted to top to prevent "accessed before declaration" errors)
   const [alert, setAlert] = useState({
@@ -113,7 +143,16 @@ const ClassManagement = () => {
 
   // Form inputs change
   const handleFormChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === "semester") {
+      setFormData({
+        ...formData,
+        semester: e.target.value,
+        startDate: "",
+        endDate: "",
+      });
+    } else {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
   };
 
   // Dynamic Schedules handlers
@@ -174,11 +213,19 @@ const ClassManagement = () => {
       );
       setModal({ show: true, type: "edit", data });
     } else {
+      let preselectedSemesterId = semesters[0]?._id || "";
+      if (semesterFilter !== "all") {
+        const matchedSem = semesters.find(sem => sem.semesterId === semesterFilter || sem._id === semesterFilter);
+        if (matchedSem) {
+          preselectedSemesterId = matchedSem._id;
+        }
+      }
+
       setFormData({
         classId: "",
         subject: subjects[0]?._id || "",
         instructor: instructors[0]?._id || "",
-        semester: semesters[0]?._id || "",
+        semester: preselectedSemesterId,
         startDate: "",
         endDate: "",
         room: "",
@@ -302,6 +349,17 @@ const ClassManagement = () => {
       .join(", ");
   };
 
+  const selectedSemesterObj = semesters.find(
+    s => s._id === formData.semester || s.semesterId === formData.semester
+  );
+
+  const minDate = selectedSemesterObj
+    ? new Date(selectedSemesterObj.startDate).toISOString().split("T")[0]
+    : "";
+  const maxDate = selectedSemesterObj
+    ? new Date(selectedSemesterObj.endDate).toISOString().split("T")[0]
+    : "";
+
   return (
     <div className="min-h-screen bg-background text-DEFAULT font-sans p-6 relative transition-colors duration-150">
       
@@ -329,10 +387,27 @@ const ClassManagement = () => {
             Quản lý mở các lớp học phần, phòng học và xếp thời khóa biểu giảng dạy
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Semester Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase text-muted whitespace-nowrap">Lọc học kỳ:</span>
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="bg-surface border border-border rounded-md px-3 py-2 text-DEFAULT text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-all"
+            >
+              <option value="all">Tất cả</option>
+              {semesters.map((sem) => (
+                <option key={sem.semesterId} value={sem.semesterId}>
+                  {sem.semesterName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
-            onClick={() => navigate("/admin/classes/create")}
-            className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-md shadow-sm transition duration-200 cursor-pointer flex items-center gap-1.5"
+            onClick={() => openModal("add")}
+            className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-md shadow-sm transition duration-200 cursor-pointer flex items-center gap-1.5 border-none"
           >
             <School size={16} />
             Mở Lớp Học Phần
@@ -360,7 +435,7 @@ const ClassManagement = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[290px]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface border-b border-border text-muted text-xs font-semibold uppercase tracking-wider">
@@ -374,11 +449,18 @@ const ClassManagement = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-sm">
-                {classes.map((cls) => (
-                  <tr
-                    key={cls._id}
-                    className="hover:bg-slate-550/10 dark:hover:bg-white/5 transition duration-150"
-                  >
+                {filteredClasses.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-muted font-semibold">
+                      Không có lớp học phần nào thuộc học kỳ này.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredClasses.map((cls, index) => (
+                    <tr
+                      key={cls._id}
+                      className="hover:bg-slate-550/10 dark:hover:bg-white/5 transition duration-150"
+                    >
                     <td className="py-3 px-4 align-middle font-mono text-DEFAULT font-semibold">
                       {cls.classId}
                     </td>
@@ -415,47 +497,69 @@ const ClassManagement = () => {
                         {cls.currentStudents} / {cls.maxStudents}
                       </span>
                     </td>
-                    <td className="py-3 px-4 align-middle text-right relative">
-                      <button
-                        onClick={() => setOpenDropdownId(openDropdownId === cls.classId ? null : cls.classId)}
-                        className="p-2 rounded-md text-muted hover:text-DEFAULT hover:bg-background transition-colors focus:outline-none cursor-pointer"
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                      {openDropdownId === cls.classId && (
-                        <>
-                          {/* Click outside backdrop */}
-                          <div 
-                            className="fixed inset-0 z-40 cursor-default" 
-                            onClick={() => setOpenDropdownId(null)}
-                          />
-                          <div className="absolute right-4 mt-1 w-32 bg-surface border border-border rounded-md shadow-xl z-50 overflow-hidden text-left animate-in fade-in slide-in-from-top-1 duration-150">
-                            <button
-                              onClick={() => {
-                                openModal("edit", cls);
-                                setOpenDropdownId(null);
+                    <td className="py-3 px-4 align-middle text-right">
+                      <div className="relative inline-block text-left">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openDropdownId === cls._id) {
+                              setOpenDropdownId(null);
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setDropdownPosition({
+                                top: rect.bottom + window.scrollY,
+                                left: rect.right - 128 + window.scrollX,
+                              });
+                              setOpenDropdownId(cls._id);
+                            }
+                          }}
+                          className="p-2 rounded-md text-muted hover:text-DEFAULT hover:bg-background transition-colors focus:outline-none cursor-pointer"
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                        {openDropdownId === cls._id && createPortal(
+                          <>
+                            {/* Click outside backdrop */}
+                            <div 
+                              className="fixed inset-0 z-40 cursor-default bg-transparent" 
+                              onClick={() => setOpenDropdownId(null)}
+                            />
+                            <div 
+                              style={{
+                                position: 'absolute',
+                                top: `${dropdownPosition.top}px`,
+                                left: `${dropdownPosition.left}px`,
                               }}
-                              className="w-full text-left px-4 py-2 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                              className="w-32 bg-surface border border-border rounded-md shadow-xl z-55 overflow-hidden text-left animate-in fade-in duration-150"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteClick(cls);
-                                setOpenDropdownId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Xóa
-                            </button>
-                          </div>
-                        </>
-                      )}
+                              <button
+                                onClick={() => {
+                                  openModal("edit", cls);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteClick(cls);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Xóa
+                              </button>
+                            </div>
+                          </>,
+                          document.body
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -584,6 +688,8 @@ const ClassManagement = () => {
                   <input
                     type="date"
                     required
+                    min={minDate}
+                    max={maxDate}
                     className="w-full px-3.5 py-2 bg-background border border-border rounded-md text-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary font-mono text-sm"
                     name="startDate"
                     value={formData.startDate}
@@ -597,6 +703,8 @@ const ClassManagement = () => {
                   <input
                     type="date"
                     required
+                    min={minDate}
+                    max={maxDate}
                     className="w-full px-3.5 py-2 bg-background border border-border rounded-md text-DEFAULT focus:outline-none focus:ring-1 focus:ring-primary font-mono text-sm"
                     name="endDate"
                     value={formData.endDate}

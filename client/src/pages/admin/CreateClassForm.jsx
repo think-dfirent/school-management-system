@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 const CreateClassForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const semesterIdParam = searchParams.get("semesterId");
 
   const token = useAuthStore((state) => state.token);
 
@@ -66,7 +68,16 @@ const CreateClassForm = () => {
         setLecturers(lecturers);
         setSemesters(semesters);
 
-        // Set initial select values setFormData(prev => ({ ...prev, subject: subjects[0]?._id || '', instructor: lecturers[0]?._id || '', semester: semesters[0]?._id || '', }));
+        // Find if any semester has semesterId matching semesterIdParam
+        const targetSem = semesters.find(sem => sem.semesterId === semesterIdParam);
+        const selectedSemId = targetSem ? targetSem._id : (semesters[0]?._id || '');
+
+        setFormData(prev => ({
+          ...prev,
+          subject: prev.subject || (subjects[0]?._id || ''),
+          instructor: prev.instructor || (lecturers[0]?._id || ''),
+          semester: selectedSemId,
+        }));
       } catch (err) {
         showToast(
           "Không thể kết nối với máy chủ để tải dữ liệu form!",
@@ -153,15 +164,16 @@ const CreateClassForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-DEFAULT text-DEFAULT font-sans p-6 flex flex-col justify-center items-center relative overflow-hidden">
-      {" "}
-      {/* Background Aesthetic Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-[80px] pointer-events-none"></div>{" "}
-      {/* Custom Toast Notification */}{" "}
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 text-DEFAULT font-sans relative overflow-hidden transition-colors duration-150">
+      
+      {/* Custom Toast Notification */}
       {toast.show && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl border transition-all duration-300 transform translate-y-0 ${toast.type === "success" ? "bg-surface border-emerald-500/30 text-emerald-400" : "bg-surface border-rose-500/30 text-rose-400"}`}
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-md shadow-2xl border transition-all duration-300 transform translate-y-0 ${
+            toast.type === "success" 
+              ? "bg-surface border-emerald-500/30 text-emerald-400" 
+              : "bg-surface border-rose-500/30 text-rose-400"
+          }`}
         >
           <span className="font-bold text-lg">
             {toast.type === "success" ? "✓" : "⚠"}
@@ -169,48 +181,47 @@ const CreateClassForm = () => {
           <span className="text-sm font-medium">{toast.message}</span>
         </div>
       )}
-      <div className="w-full max-w-2xl bg-slate-850/60 backdrop-blur-md border border-border/80 rounded-2xl shadow-2xl p-8 relative z-10">
-        {" "}
+      <div className="bg-surface border border-border rounded-md shadow-lg w-full max-w-4xl p-8 relative z-10">
+        
         {/* Header */}
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-border">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-DEFAULT">
-              {" "}
+            <h2 className="text-2xl font-bold text-DEFAULT">
               Mở Lớp Học Phần Mới
             </h2>
-            <p className="text-slate-400 text-xs mt-1">
+            <p className="text-sm text-muted mt-1 mb-6">
               Vui lòng hoàn tất mẫu thông tin bên dưới để tổ chức lớp giảng dạy.
             </p>
           </div>
           <button
             onClick={() => navigate("/admin/classes")}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-DEFAULT bg-surface hover:bg-slate-700 rounded-lg border border-border transition duration-200 cursor-pointer"
+            className="bg-transparent border border-border text-muted hover:text-DEFAULT hover:bg-background/50 font-semibold py-1.5 px-4 rounded-md transition-colors cursor-pointer text-xs"
           >
-            {" "}
             Quay lại
           </button>
-        </div>{" "}
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-slate-400 text-sm animate-pulse">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-muted text-sm animate-pulse">
               Đang nạp cấu hình học kỳ, môn học và giảng viên...
             </span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {" "}
+            
             {/* Row 1: Class ID & Semester */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Mã lớp học phần *
                 </label>
                 <input
                   type="text"
                   name="classId"
                   required
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 font-mono uppercase"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono uppercase"
                   placeholder="Ví dụ: INT1340-01"
                   value={formData.classId}
                   onChange={(e) =>
@@ -222,17 +233,17 @@ const CreateClassForm = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Học kỳ *
                 </label>
                 <select
                   name="semester"
                   required
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 cursor-pointer"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   value={formData.semester}
                   onChange={handleInputChange}
                 >
-                  <option value="">-- Chọn Học kỳ --</option>{" "}
+                  <option value="">-- Chọn Học kỳ --</option>
                   {semesters.map((sem) => (
                     <option key={sem._id} value={sem._id}>
                       {sem.semesterName}
@@ -240,21 +251,22 @@ const CreateClassForm = () => {
                   ))}
                 </select>
               </div>
-            </div>{" "}
+            </div>
+
             {/* Row 2: Subject & Instructor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Môn học *
                 </label>
                 <select
                   name="subject"
                   required
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 cursor-pointer"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   value={formData.subject}
                   onChange={handleInputChange}
                 >
-                  <option value="">-- Chọn Môn học --</option>{" "}
+                  <option value="">-- Chọn Môn học --</option>
                   {subjects.map((sub) => (
                     <option key={sub._id} value={sub._id}>
                       {sub.subjectName} ({sub.subjectId})
@@ -263,17 +275,17 @@ const CreateClassForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Giảng viên phụ trách *
                 </label>
                 <select
                   name="instructor"
                   required
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 cursor-pointer"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
                   value={formData.instructor}
                   onChange={handleInputChange}
                 >
-                  <option value="">-- Chọn Giảng viên --</option>{" "}
+                  <option value="">-- Chọn Giảng viên --</option>
                   {lecturers.map((lect) => (
                     <option key={lect._id} value={lect._id}>
                       {lect.fullName} ({lect.userId})
@@ -281,23 +293,22 @@ const CreateClassForm = () => {
                   ))}
                 </select>
               </div>
-            </div>{" "}
+            </div>
+
             {/* Row 3: Schedule Details */}
-            <div className="bg-background/40 p-5 border border-border rounded-xl space-y-4">
-              {" "}
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest pb-1 border-b border-border">
-                {" "}
-                Chi tiết Lịch học{" "}
+            <div className="bg-background/50 border border-border rounded-md p-5 mt-2 space-y-4">
+              <h4 className="text-xs font-bold uppercase text-muted tracking-widest pb-1 border-b border-border">
+                Chi tiết Lịch học
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                     Thứ trong tuần *
                   </label>
                   <select
                     name="dayOfWeek"
                     required
-                    className="w-full px-3 py-2.5 bg-background/80 border border-border rounded-lg text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 cursor-pointer text-sm"
+                    className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer text-sm"
                     value={formData.dayOfWeek}
                     onChange={handleInputChange}
                   >
@@ -311,7 +322,7 @@ const CreateClassForm = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                     Tiết học bắt đầu *
                   </label>
                   <input
@@ -320,13 +331,13 @@ const CreateClassForm = () => {
                     required
                     min="1"
                     max="14"
-                    className="w-full px-3 py-2 bg-background/80 border border-border rounded-lg text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-sm font-mono"
+                    className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-mono"
                     value={formData.startPeriod}
                     onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                     Tiết học kết thúc *
                   </label>
                   <input
@@ -335,31 +346,32 @@ const CreateClassForm = () => {
                     required
                     min="1"
                     max="14"
-                    className="w-full px-3 py-2 bg-background/80 border border-border rounded-lg text-DEFAULT focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-sm font-mono"
+                    className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-mono"
                     value={formData.endPeriod}
                     onChange={handleInputChange}
                   />
                 </div>
               </div>
-            </div>{" "}
+            </div>
+
             {/* Row 4: Room & Max Students */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Phòng học *
                 </label>
                 <input
                   type="text"
                   name="room"
                   required
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   placeholder="Ví dụ: Phòng 302-A2"
                   value={formData.room}
                   onChange={handleInputChange}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold uppercase text-muted tracking-wider mb-1.5">
                   Sĩ số sinh viên tối đa *
                 </label>
                 <input
@@ -367,33 +379,32 @@ const CreateClassForm = () => {
                   name="maxStudents"
                   required
                   min="1"
-                  className="w-full px-4 py-3 bg-background/80 border border-border rounded-xl text-DEFAULT placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 font-mono"
+                  className="w-full bg-background border border-border rounded-md px-3 py-2.5 text-DEFAULT focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
                   placeholder="40"
                   value={formData.maxStudents}
                   onChange={handleInputChange}
                 />
               </div>
-            </div>{" "}
+            </div>
+
             {/* Actions */}
-            <div className="pt-4 border-t border-border flex flex-col sm:flex-row gap-3">
+            <div className="pt-4 border-t border-border flex justify-end gap-4">
               <button
                 type="button"
                 onClick={() => navigate("/admin/classes")}
-                className="w-full sm:w-1/3 py-3 px-4 text-sm font-bold text-slate-400 hover:text-DEFAULT bg-surface hover:bg-slate-750 rounded-xl border border-border transition duration-200 text-center cursor-pointer"
+                className="bg-transparent border border-border text-muted hover:text-DEFAULT hover:bg-background/50 font-semibold py-2.5 px-6 rounded-md transition-colors cursor-pointer text-sm"
               >
-                {" "}
                 Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full sm:w-2/3 py-3 px-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 transition duration-200 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="bg-primary hover:bg-primary/90 text-white font-bold py-2.5 px-6 rounded-md transition-colors border-none cursor-pointer flex justify-center items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {" "}
                 {submitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>{" "}
-                    Đang lưu lớp học...{" "}
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Đang lưu lớp học...
                   </>
                 ) : (
                   "Mở Lớp Học Phần"

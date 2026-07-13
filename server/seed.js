@@ -67,6 +67,16 @@ async function seedDatabase() {
         const regStart = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days ago (OPEN)
         const regEnd = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000); // 10 days in future
 
+        const pastSemester = await Semester.create({
+            semesterId: '20251',
+            semesterName: 'Học kỳ I năm học 2025-2026',
+            startDate: new Date('2025-08-15'),
+            endDate: new Date('2025-12-30'),
+            registrationStartDate: new Date('2025-07-01'),
+            registrationEndDate: new Date('2025-07-15'),
+            isActive: false
+        });
+
         const activeSemester = await Semester.create({
             semesterId: '20252',
             semesterName: 'Học kỳ II năm học 2025-2026',
@@ -84,6 +94,8 @@ async function seedDatabase() {
         const subCSDL = await Subject.create({ subjectId: 'INT1341', subjectName: 'Cơ sở dữ liệu', credits: 3 });
         const subMMT = await Subject.create({ subjectId: 'INT1342', subjectName: 'Mạng máy tính', credits: 3 });
         const subATN = await Subject.create({ subjectId: 'INT1343', subjectName: 'An toàn mạng', credits: 3 });
+        const subCpp = await Subject.create({ subjectId: 'INT1154', subjectName: 'Lập trình C++', credits: 3 });
+        const subTriet = await Subject.create({ subjectId: 'MLN1101', subjectName: 'Triết học Mác - Lênin', credits: 3 });
         console.log('Subjects created successfully!');
 
         // 4.5. CREATE ROOMS
@@ -236,6 +248,32 @@ async function seedDatabase() {
             maxStudents: 40,
             currentStudents: 0
         });
+
+        const classPast1 = await Class.create({
+            classId: 'INT1154-01',
+            subject: subCpp._id,
+            instructor: ins1._id,
+            semester: pastSemester._id,
+            startDate: new Date('2025-08-20'),
+            endDate: new Date('2025-12-15'),
+            schedules: [{ dayOfWeek: 3, startPeriod: 1, endPeriod: 3, room: roomB302._id }],
+            room: 'B302',
+            maxStudents: 40,
+            currentStudents: 0
+        });
+
+        const classPast2 = await Class.create({
+            classId: 'MLN1101-01',
+            subject: subTriet._id,
+            instructor: ins2._id,
+            semester: pastSemester._id,
+            startDate: new Date('2025-08-21'),
+            endDate: new Date('2025-12-16'),
+            schedules: [{ dayOfWeek: 4, startPeriod: 7, endPeriod: 9, room: roomA2_301._id }],
+            room: 'A2-301',
+            maxStudents: 40,
+            currentStudents: 0
+        });
         console.log('Classes created successfully!');
 
         // 7. CREATE ENROLLMENTS & TUITIONS
@@ -370,6 +408,90 @@ async function seedDatabase() {
         }
         console.log('Tuitions generated successfully!');
 
+        console.log('Generating historical enrollments, grades and tuition records for past semester...');
+        const generateRandomPassingGrades = () => {
+            const att = Math.round((7.5 + Math.random() * 2.5) * 10) / 10;
+            const mid = Math.round((6.5 + Math.random() * 3.5) * 10) / 10;
+            const fin = Math.round((5.5 + Math.random() * 4.5) * 10) / 10;
+            const total = (att * 0.1) + (mid * 0.2) + (fin * 0.7);
+            const totalScore = Math.round(total * 10) / 10;
+
+            let letterGrade = 'C';
+            if (totalScore >= 8.95) letterGrade = 'A+';
+            else if (totalScore >= 8.45) letterGrade = 'A';
+            else if (totalScore >= 7.95) letterGrade = 'B+';
+            else if (totalScore >= 6.95) letterGrade = 'B';
+            else if (totalScore >= 6.45) letterGrade = 'C+';
+            else if (totalScore >= 5.45) letterGrade = 'C';
+            else if (totalScore >= 4.95) letterGrade = 'D+';
+            else if (totalScore >= 3.95) letterGrade = 'D';
+            else letterGrade = 'F';
+
+            return { attendanceScore: att, midtermScore: mid, finalScore: fin, totalScore, letterGrade };
+        };
+
+        for (const student of students) {
+            // 1. Enrollment and grades for classPast1
+            const grades1 = generateRandomPassingGrades();
+            await Enrollment.create({
+                student: student._id,
+                class: classPast1._id,
+                semester: pastSemester._id,
+                grades: {
+                    attendance: grades1.attendanceScore,
+                    midterm: grades1.midtermScore,
+                    final: grades1.finalScore,
+                    total: grades1.totalScore,
+                    letterGrade: grades1.letterGrade
+                },
+                attendanceScore: grades1.attendanceScore,
+                midtermScore: grades1.midtermScore,
+                finalScore: grades1.finalScore,
+                totalScore: grades1.totalScore,
+                letterGrade: grades1.letterGrade,
+                status: 'Đạt'
+            });
+
+            // 2. Enrollment and grades for classPast2
+            const grades2 = generateRandomPassingGrades();
+            await Enrollment.create({
+                student: student._id,
+                class: classPast2._id,
+                semester: pastSemester._id,
+                grades: {
+                    attendance: grades2.attendanceScore,
+                    midterm: grades2.midtermScore,
+                    final: grades2.finalScore,
+                    total: grades2.totalScore,
+                    letterGrade: grades2.letterGrade
+                },
+                attendanceScore: grades2.attendanceScore,
+                midtermScore: grades2.midtermScore,
+                finalScore: grades2.finalScore,
+                totalScore: grades2.totalScore,
+                letterGrade: grades2.letterGrade,
+                status: 'Đạt'
+            });
+
+            // 3. Tuition record for pastSemester
+            const pastFee = 6 * 420000;
+            await Tuition.create({
+                student: student._id,
+                semester: pastSemester._id,
+                totalFee: pastFee,
+                discount: 0,
+                payableAmount: pastFee,
+                paidAmount: pastFee,
+                debtAmount: 0,
+                status: 'paid'
+            });
+        }
+
+        // 4. Update past classes student count
+        await Class.findByIdAndUpdate(classPast1._id, { $inc: { currentStudents: students.length } });
+        await Class.findByIdAndUpdate(classPast2._id, { $inc: { currentStudents: students.length } });
+        console.log('Historical enrollments, grades and tuitions created successfully!');
+
         // 8. CREATE ATTENDANCE RECORDS (2 days of attendance for Class 1)
         console.log('Creating attendance records for Class 1...');
         const date1 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
@@ -383,6 +505,7 @@ async function seedDatabase() {
         await Attendance.create({
             class: class1._id,
             date: date1,
+            sessionNumber: 1,
             records: [
                 { student: class1Students[0]._id, status: 'present' },
                 { student: class1Students[1]._id, status: 'present' },
@@ -396,6 +519,7 @@ async function seedDatabase() {
         await Attendance.create({
             class: class1._id,
             date: date2,
+            sessionNumber: 2,
             records: [
                 { student: class1Students[0]._id, status: 'present' },
                 { student: class1Students[1]._id, status: 'present' },

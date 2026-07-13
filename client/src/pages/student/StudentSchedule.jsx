@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { RefreshCw, AlertTriangle, Calendar, BookOpen, Clock, Settings } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -99,46 +99,42 @@ const StudentSchedule = () => {
   // Semesters & Weeks states
   const [semesters, setSemesters] = useState([]);
   const [selectedSemester, setSelectedSemester] = useState("");
-  const [availableWeeks, setAvailableWeeks] = useState([]);
   const [currentWeekStart, setCurrentWeekStart] = useState(null);
 
-  // Helper to generate weeks between startDate and endDate
-  const generateWeeks = (startDt, endDt) => {
-    if (!startDt || !endDt) return [];
+  // Dynamic Week Generator Utility
+  const generateWeeksForSemester = (semesterObj) => {
+      if (!semesterObj || !semesterObj.startDate || !semesterObj.endDate) return [];
+      
+      const weeks = [];
+      let currentStart = new Date(semesterObj.startDate);
+      const end = new Date(semesterObj.endDate);
+      let weekNumber = 1;
 
-    const start = new Date(startDt);
-    const end = new Date(endDt);
+      // Ensure we don't mutate the original date object directly
+      while (currentStart <= end) {
+          const currentEnd = new Date(currentStart);
+          currentEnd.setDate(currentEnd.getDate() + 6); // Add 6 days to get the end of the week
 
-    // Align to Monday of start date week
-    const startDay = start.getDay();
-    const startDiff = start.getDate() - startDay + (startDay === 0 ? -6 : 1);
-    const firstMonday = new Date(start.setDate(startDiff));
-    firstMonday.setHours(0, 0, 0, 0);
+          // Helper to format date as DD/MM/YYYY
+          const formatStr = (d) => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const weeks = [];
-    let currentMonday = new Date(firstMonday);
-    let weekNum = 1;
+          weeks.push({
+              id: weekNumber,
+              startDate: new Date(currentStart),
+              endDate: currentEnd > end ? new Date(end) : new Date(currentEnd), // Cap at semester end
+              label: `Tuần ${weekNumber} [từ ngày ${formatStr(currentStart)} đến ngày ${formatStr(currentEnd)}]`
+          });
 
-    while (currentMonday <= end) {
-      const monday = new Date(currentMonday);
-      const sunday = new Date(currentMonday);
-      sunday.setDate(currentMonday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-
-      const formatLabelDate = (d) => {
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-      };
-
-      const label = `Tuần ${weekNum} [từ ngày ${formatLabelDate(monday)} đến ngày ${formatLabelDate(sunday)}]`;
-      weeks.push({ weekNum, mondayDate: monday, sundayDate: sunday, label });
-      currentMonday.setDate(currentMonday.getDate() + 7);
-      weekNum++;
-    }
-    return weeks;
+          // Move to the next week (add 7 days)
+          currentStart.setDate(currentStart.getDate() + 7);
+          weekNumber++;
+      }
+      return weeks;
   };
+
+  const activeSemesterObj = semesters.find(s => s._id === selectedSemester || s.semesterId === selectedSemester);
+
+  const availableWeeks = useMemo(() => generateWeeksForSemester(activeSemesterObj), [activeSemesterObj]);
 
   const formatDateLabel = (date) => {
     if (!date) return "";
@@ -186,28 +182,23 @@ const StudentSchedule = () => {
     }
   }, [token]);
 
-  // Hook 2: Generate weeks and set starting week whenever selected semester changes
+  // Hook 2: Set starting week whenever availableWeeks changes
   useEffect(() => {
-    if (!selectedSemester || semesters.length === 0) return;
-    const sem = semesters.find((s) => s._id === selectedSemester);
-    if (sem) {
-      const weeks = generateWeeks(sem.startDate, sem.endDate);
-      setAvailableWeeks(weeks);
+    if (!availableWeeks || availableWeeks.length === 0) return;
 
-      // Default to current week if today is in range, else default to week 1
-      const today = new Date();
-      let defaultWeek = weeks[0];
-      for (const w of weeks) {
-        if (today >= w.mondayDate && today <= w.sundayDate) {
-          defaultWeek = w;
-          break;
-        }
-      }
-      if (defaultWeek) {
-        setCurrentWeekStart(defaultWeek.mondayDate);
+    // Default to current week if today is in range, else default to week 1
+    const today = new Date();
+    let defaultWeek = availableWeeks[0];
+    for (const w of availableWeeks) {
+      if (today >= w.startDate && today <= w.endDate) {
+        defaultWeek = w;
+        break;
       }
     }
-  }, [selectedSemester, semesters]);
+    if (defaultWeek) {
+      setCurrentWeekStart(defaultWeek.startDate);
+    }
+  }, [availableWeeks]);
 
   // Fetch personal schedule from API
   const fetchMySchedule = async () => {
@@ -239,31 +230,34 @@ const StudentSchedule = () => {
   const handlePreviousWeek = () => {
     if (!currentWeekStart || availableWeeks.length === 0) return;
     const currentIdx = availableWeeks.findIndex(
-      (w) => w.mondayDate.getTime() === new Date(currentWeekStart).getTime(),
+      (w) => w.startDate.getTime() === new Date(currentWeekStart).getTime(),
     );
     if (currentIdx > 0) {
-      setCurrentWeekStart(availableWeeks[currentIdx - 1].mondayDate);
+      setCurrentWeekStart(availableWeeks[currentIdx - 1].startDate);
     }
   };
 
   const handleNextWeek = () => {
     if (!currentWeekStart || availableWeeks.length === 0) return;
     const currentIdx = availableWeeks.findIndex(
-      (w) => w.mondayDate.getTime() === new Date(currentWeekStart).getTime(),
+      (w) => w.startDate.getTime() === new Date(currentWeekStart).getTime(),
     );
     if (currentIdx !== -1 && currentIdx < availableWeeks.length - 1) {
-      setCurrentWeekStart(availableWeeks[currentIdx + 1].mondayDate);
+      setCurrentWeekStart(availableWeeks[currentIdx + 1].startDate);
     }
   };
 
   // Filter classes to match the selected semester
   const semesterClasses = (classes || []).filter((cls) => {
     if (!selectedSemester) return true;
-    const selectedSemObj = semesters.find((s) => s._id === selectedSemester);
+    const selectedSemObj = semesters.find((s) => s._id === selectedSemester || s.semesterId === selectedSemester);
     if (!selectedSemObj) return true;
     const semId = typeof cls.semester === "object" ? cls.semester?._id : cls.semester;
     const semName = typeof cls.semester === "object" ? cls.semester?.semesterName : "";
-    return semId === selectedSemester || (semName && semName === selectedSemObj.semesterName);
+    return (
+      (semId && semId.toString() === selectedSemester.toString()) ||
+      (semName && semName === selectedSemObj.semesterName)
+    );
   });
 
   // Parse class items into schedule blocks
@@ -362,7 +356,14 @@ const StudentSchedule = () => {
             </label>
             <select
               value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
+              onChange={(e) => {
+                setSelectedSemester(e.target.value);
+                const nextSemObj = semesters.find(s => s._id === e.target.value || s.semesterId === e.target.value);
+                const nextWeeks = generateWeeksForSemester(nextSemObj);
+                if (nextWeeks && nextWeeks.length > 0) {
+                  setCurrentWeekStart(nextWeeks[0].startDate);
+                }
+              }}
               className="bg-background border border-border text-DEFAULT rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer w-full"
             >
               {(semesters || []).length === 0 && (
@@ -395,7 +396,7 @@ const StudentSchedule = () => {
                 <option value="">Đang tải tuần học...</option>
               )}
               {(availableWeeks || []).map((w) => (
-                <option key={w.weekNum} value={w.mondayDate.toISOString()}>
+                <option key={w.id} value={w.startDate.toISOString()}>
                   {w.label}
                 </option>
               ))}

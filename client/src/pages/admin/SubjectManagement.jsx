@@ -219,7 +219,7 @@ const SubjectManagement = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[290px]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-background/50 border-b border-border text-muted text-xs font-semibold uppercase tracking-wider">
@@ -230,7 +230,7 @@ const SubjectManagement = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-sm">
-                {subjects.map((subj) => (
+                {subjects.map((subj, index) => (
                   <tr
                     key={subj._id}
                     className="hover:bg-background/80 transition duration-150"
@@ -246,44 +246,50 @@ const SubjectManagement = () => {
                         {subj.credits} tín chỉ
                       </span>
                     </td>
-                    <td className="py-3 px-4 align-middle text-right relative">
-                      <button
-                        onClick={() => setOpenDropdownId(openDropdownId === subj.subjectId ? null : subj.subjectId)}
-                        className="p-2 rounded-md text-muted hover:text-DEFAULT hover:bg-background transition-colors focus:outline-none cursor-pointer"
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                      {openDropdownId === subj.subjectId && (
-                        <>
-                          {/* Click outside backdrop */}
-                          <div 
-                            className="fixed inset-0 z-40 cursor-default" 
-                            onClick={() => setOpenDropdownId(null)}
-                          />
-                          <div className="absolute right-4 mt-1 w-32 bg-surface border border-border rounded-md shadow-xl z-50 overflow-hidden text-left animate-in fade-in slide-in-from-top-1 duration-150">
-                            <button
-                              onClick={() => {
-                                openModal("edit", subj);
-                                setOpenDropdownId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteClick(subj);
-                                setOpenDropdownId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Xóa
-                            </button>
-                          </div>
-                        </>
-                      )}
+                    <td className="py-3 px-4 align-middle text-right">
+                      <div className="relative inline-block text-left">
+                        <button
+                          onClick={() => setOpenDropdownId(openDropdownId === subj.subjectId ? null : subj.subjectId)}
+                          className="p-2 rounded-md text-muted hover:text-DEFAULT hover:bg-background transition-colors focus:outline-none cursor-pointer"
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                        {openDropdownId === subj.subjectId && (
+                          <>
+                            {/* Click outside backdrop */}
+                            <div 
+                              className="fixed inset-0 z-40 cursor-default" 
+                              onClick={() => setOpenDropdownId(null)}
+                            />
+                            <div className={`absolute right-0 w-32 bg-surface border border-border rounded-md shadow-xl z-50 overflow-hidden text-left animate-in fade-in duration-150 ${
+                              index >= subjects.length - 2 && subjects.length > 2
+                                ? "bottom-full mb-1 origin-bottom"
+                                : "top-full mt-1 origin-top"
+                            }`}>
+                              <button
+                                onClick={() => {
+                                  openModal("edit", subj);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteClick(subj);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Xóa
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

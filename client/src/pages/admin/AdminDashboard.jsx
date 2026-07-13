@@ -28,6 +28,7 @@ import {
   Mail,
   Megaphone,
   UserCheck,
+  CheckCircle,
 } from "lucide-react";
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -88,22 +89,25 @@ const AdminDashboard = () => {
   const GRADE_COLORS = {
     "A+": "#10b981",
     A: "#10b981",
-    "B+": "#3b82f6",
+    "B+": "#0ea5e9",
     B: "#3b82f6",
-    "C+": "#f59e0b",
+    "C+": "#8b5cf6",
     C: "#f59e0b",
     "D+": "#f97316",
-    D: "#f97316",
-    F: "#e11d48",
+    D: "#ef4444",
+    F: "#9f1239",
   };
 
   const DEPT_COLORS = ["#E11D48", "#475569", "#06B6D4", "#64748B", "#F43F5E"];
 
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(val);
+  const formatToMillions = (value) => {
+      if (!value) return '0';
+      if (value >= 1000000) {
+          const millions = value / 1000000;
+          const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(millions);
+          return `${formatted} Tr`;
+      }
+      return new Intl.NumberFormat('vi-VN').format(value);
   };
 
   return (
@@ -145,13 +149,12 @@ const AdminDashboard = () => {
       ) : (
         <>
           {" "}
-          {/* 4 Summary Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {" "}
+          {/* 5 Summary Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+            
             {/* Card 1: Students */}
-            <div className="bg-surface border border-border rounded-md p-5 shadow-enterprise flex items-center gap-4 animate-fade-in">
+            <div className="bg-surface border border-border rounded-md px-3.5 py-4 shadow-enterprise flex items-center gap-4 animate-fade-in animate-duration-150">
               <div className="p-3 bg-rose-500/10 text-primary rounded-md">
-                {" "}
                 <UserCheck className="w-5 h-5" />
               </div>
               <div>
@@ -162,11 +165,11 @@ const AdminDashboard = () => {
                   {stats.totalStudents || 0}
                 </span>
               </div>
-            </div>{" "}
+            </div>
+
             {/* Card 2: Instructors */}
-            <div className="bg-surface border border-border rounded-md p-5 shadow-enterprise flex items-center gap-4 animate-fade-in">
+            <div className="bg-surface border border-border rounded-md px-3.5 py-4 shadow-enterprise flex items-center gap-4 animate-fade-in animate-duration-150">
               <div className="p-3 bg-rose-500/10 text-primary rounded-md">
-                {" "}
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>
@@ -177,11 +180,11 @@ const AdminDashboard = () => {
                   {stats.totalInstructors || 0}
                 </span>
               </div>
-            </div>{" "}
+            </div>
+
             {/* Card 3: Classes */}
-            <div className="bg-surface border border-border rounded-md p-5 shadow-enterprise flex items-center gap-4 animate-fade-in">
+            <div className="bg-surface border border-border rounded-md px-3.5 py-4 shadow-enterprise flex items-center gap-4 animate-fade-in animate-duration-150">
               <div className="p-3 bg-rose-500/10 text-primary rounded-md">
-                {" "}
                 <School className="w-5 h-5" />
               </div>
               <div>
@@ -192,19 +195,34 @@ const AdminDashboard = () => {
                   {stats.openClasses || 0}
                 </span>
               </div>
-            </div>{" "}
-            {/* Card 4: Tuition revenue */}
-            <div className="bg-surface border border-border rounded-md p-5 shadow-enterprise flex items-center gap-4 animate-fade-in">
+            </div>
+
+            {/* Card 4: Expected Tuition */}
+            <div className="bg-surface border border-border rounded-md px-3.5 py-4 shadow-enterprise flex items-center gap-4 animate-fade-in animate-duration-150">
               <div className="p-3 bg-rose-500/10 text-primary rounded-md">
-                {" "}
                 <Wallet className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="block text-xs font-bold uppercase tracking-wider text-muted">
-                  Tổng Thu Học Phí
+                  Tổng Học Phí Dự Kiến
                 </span>
-                <span className="text-lg font-bold font-mono text-DEFAULT break-all">
-                  {formatCurrency(stats.totalRevenue || 0)}
+                <span className="text-lg xl:text-xl font-bold font-mono text-DEFAULT whitespace-nowrap truncate tracking-tight block">
+                  {formatToMillions(stats.totalExpectedTuition || 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 5: Collected Tuition */}
+            <div className="bg-surface border border-border rounded-md px-3.5 py-4 shadow-enterprise flex items-center gap-4 animate-fade-in animate-duration-150">
+              <div className="p-3 bg-primary/10 text-primary rounded-md">
+                <CheckCircle className="w-6 h-6 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs font-bold uppercase tracking-wider text-muted">
+                  Học Phí Đã Thu
+                </span>
+                <span className="text-lg xl:text-xl font-bold font-mono text-DEFAULT whitespace-nowrap truncate tracking-tight block">
+                  {formatToMillions(stats.totalCollectedTuition || 0)}
                 </span>
               </div>
             </div>
@@ -214,7 +232,7 @@ const AdminDashboard = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-4">
               Các Phân Hệ Quản Lý Hành Chính
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-4">
               <button
                 onClick={() => navigate("/admin/users")}
                 className="p-4 bg-slate-50 dark:bg-background/60 hover:bg-slate-100 dark:hover:bg-surface border border-border rounded-md flex flex-col items-center justify-center text-center transition duration-150 group cursor-pointer"
@@ -263,6 +281,15 @@ const AdminDashboard = () => {
                 <Calendar className="w-6 h-6 text-muted group-hover:text-primary group-hover:scale-105 transition" />
                 <span className="text-xs font-semibold text-DEFAULT mt-2">
                   Quản lý Học kỳ
+                </span>
+              </button>
+              <button
+                onClick={() => navigate("/admin/tuitions")}
+                className="p-4 bg-slate-50 dark:bg-background/60 hover:bg-slate-100 dark:hover:bg-surface border border-border rounded-md flex flex-col items-center justify-center text-center transition duration-150 group cursor-pointer"
+              >
+                <Wallet className="w-6 h-6 text-muted group-hover:text-primary group-hover:scale-105 transition" />
+                <span className="text-xs font-semibold text-DEFAULT mt-2">
+                  Quản lý Học phí
                 </span>
               </button>
               <button
@@ -341,18 +368,18 @@ const AdminDashboard = () => {
                         />{" "}
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "var(--bg-surface)",
-                            border: "1px solid var(--border-color)",
+                            backgroundColor: "rgb(var(--bg-surface))",
+                            border: "1px solid rgb(var(--border-color))",
                             borderRadius: "6px",
                             padding: "8px 12px",
                           }}
                           labelStyle={{
-                            color: "var(--text-primary)",
+                            color: "rgb(var(--text-primary))",
                             fontWeight: "bold",
                             fontSize: "12px",
                           }}
                           itemStyle={{
-                            color: "var(--text-primary)",
+                            color: "rgb(var(--text-primary))",
                             fontSize: "12px",
                           }}
                         />{" "}
@@ -413,18 +440,18 @@ const AdminDashboard = () => {
                         </Pie>{" "}
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "var(--bg-surface)",
-                            border: "1px solid var(--border-color)",
+                            backgroundColor: "rgb(var(--bg-surface))",
+                            border: "1px solid rgb(var(--border-color))",
                             borderRadius: "6px",
                             padding: "8px 12px",
                           }}
                           labelStyle={{
-                            color: "var(--text-primary)",
+                            color: "rgb(var(--text-primary))",
                             fontWeight: "bold",
                             fontSize: "12px",
                           }}
                           itemStyle={{
-                            color: "var(--text-primary)",
+                            color: "rgb(var(--text-primary))",
                             fontSize: "12px",
                           }}
                         />{" "}

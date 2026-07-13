@@ -24,6 +24,13 @@ const InstructorMaterialsTab = ({ classId }) => {
     type: "success",
   });
 
+  const showAlert = (message, type = "success") => {
+    setAlert({ show: true, message, type });
+    setTimeout(() => {
+      setAlert({ show: false, message: "", type: "success" });
+    }, 5000);
+  };
+
   const fetchMaterials = async () => {
     setLoading(true);
     try {
@@ -44,13 +51,6 @@ const InstructorMaterialsTab = ({ classId }) => {
       fetchMaterials();
     }
   }, [classId, token]);
-
-  const showAlert = (message, type = "success") => {
-    setAlert({ show: true, message, type });
-    setTimeout(() => {
-      setAlert({ show: false, message: "", type: "success" });
-    }, 5000);
-  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {

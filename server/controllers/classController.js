@@ -9,6 +9,20 @@ const mongoose = require('mongoose');
 // 1. Get list of all classes (fully populated)
 const getAllClasses = async (req, res) => {
     try {
+        if (req.user && req.user.role === 'student') {
+            const activeSemester = await Semester.findOne({ isActive: true });
+            if (!activeSemester) {
+                return res.status(200).json([]);
+            }
+            const classes = await Class.find({ semester: activeSemester._id })
+                .populate('subject', 'subjectName subjectId')
+                .populate('instructor', 'fullName userId')
+                .populate('semester', 'semesterName')
+                .populate('schedules.room')
+                .sort({ createdAt: -1 });
+            return res.status(200).json(classes);
+        }
+
         const classes = await Class.find()
             .populate('subject', 'subjectName subjectId')
             .populate('instructor', 'fullName userId')
@@ -57,6 +71,18 @@ const createClass = async (req, res) => {
 
         if (!startDate || !endDate) {
             return res.status(400).json({ message: 'Vui lòng cung cấp ngày bắt đầu và kết thúc của lớp học phần!' });
+        }
+
+        const semesterDoc = await Semester.findById(semester);
+        if (!semesterDoc) return res.status(404).json({ message: 'Không tìm thấy học kỳ.' });
+
+        const classStart = new Date(startDate);
+        const classEnd = new Date(endDate);
+        
+        if (classStart < semesterDoc.startDate || classEnd > semesterDoc.endDate) {
+            return res.status(400).json({ 
+                message: `Thời gian lớp học phần phải nằm trong giới hạn của học kỳ (Từ ${semesterDoc.startDate.toLocaleDateString('vi-VN')} đến ${semesterDoc.endDate.toLocaleDateString('vi-VN')}).` 
+            });
         }
 
         // Check instructor & room schedule conflicts using $elemMatch
@@ -145,6 +171,18 @@ const updateClass = async (req, res) => {
 
         if (!startDate || !endDate) {
             return res.status(400).json({ message: 'Vui lòng cung cấp ngày bắt đầu và kết thúc của lớp học phần!' });
+        }
+
+        const semesterDoc = await Semester.findById(semester);
+        if (!semesterDoc) return res.status(404).json({ message: 'Không tìm thấy học kỳ.' });
+
+        const classStart = new Date(startDate);
+        const classEnd = new Date(endDate);
+        
+        if (classStart < semesterDoc.startDate || classEnd > semesterDoc.endDate) {
+            return res.status(400).json({ 
+                message: `Thời gian lớp học phần phải nằm trong giới hạn của học kỳ (Từ ${semesterDoc.startDate.toLocaleDateString('vi-VN')} đến ${semesterDoc.endDate.toLocaleDateString('vi-VN')}).` 
+            });
         }
 
         // Check instructor & room schedule conflicts using $elemMatch (ngoai tru lop hien tai)

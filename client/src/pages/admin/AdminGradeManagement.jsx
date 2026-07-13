@@ -174,7 +174,19 @@ const AdminGradeManagement = () => {
     } finally {
       setModalSaving(false);
     }
+  };  const handleSemesterChange = (e) => {
+    setSelectedSemester(e.target.value);
+    setSelectedClass('all'); // Reset the dependent Class dropdown to default
   };
+
+  const filteredClassesForDropdown = classes.filter(cls => {
+      // If no semester is selected or "Tất cả" ('all') is selected, show all classes
+      if (!selectedSemester || selectedSemester === 'all') return true;
+      
+      // Extract semester ID safely (handling both populated objects and raw ObjectIds)
+      const clsSemId = cls.semester?._id?.toString() || cls.semester?.toString();
+      return clsSemId === selectedSemester.toString();
+  });
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6 text-DEFAULT">
@@ -221,7 +233,7 @@ const AdminGradeManagement = () => {
             </label>
             <select
               value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
+              onChange={handleSemesterChange}
               className="w-full bg-background border border-border text-DEFAULT rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
             >
               <option value="all">Tất cả học kỳ</option>
@@ -244,7 +256,7 @@ const AdminGradeManagement = () => {
               className="w-full bg-background border border-border text-DEFAULT rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
             >
               <option value="all">Tất cả lớp học</option>
-              {classes.map((cls) => (
+              {filteredClassesForDropdown.map((cls) => (
                 <option key={cls._id} value={cls._id}>
                   {cls.classId} ({cls.subject?.subjectName})
                 </option>

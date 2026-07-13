@@ -199,79 +199,113 @@ const StudentGrades = () => {
               </div>
             </div>
 
-            {/* Grades Data Table Card */}
-            <div className="bg-surface border border-border rounded-md shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-background/50 border-b border-border text-muted text-xs font-semibold uppercase tracking-wider">
-                      <th className="px-6 py-4">Môn học / Lớp HP</th>
-                      <th className="px-6 py-4 text-center">Tín chỉ</th>
-                      <th className="px-6 py-4 text-center">Chuyên cần</th>
-                      <th className="px-6 py-4 text-center">Giữa kỳ</th>
-                      <th className="px-6 py-4 text-center">Cuối kỳ</th>
-                      <th className="px-6 py-4 text-center">Tổng kết (hệ 10)</th>
-                      <th className="px-6 py-4 text-center">Điểm hệ 4</th>
-                      <th className="px-6 py-4 text-center">Điểm chữ</th>
-                      <th className="px-6 py-4 text-center">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border text-sm">
-                    {grades.map((g) => (
-                      <tr
-                        key={g._id}
-                        className="hover:bg-background/80 border-b border-border transition duration-150"
-                      >
-                        <td className="px-6 py-4">
-                          <span className="block font-semibold text-DEFAULT">
-                            {g.subjectName}
-                          </span>
-                          <span className="text-xs text-muted font-mono">
-                            Lớp: {g.classId}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center font-mono font-medium text-DEFAULT">
-                          {g.credits}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {renderScore(g.attendanceScore)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {renderScore(g.midtermScore)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {renderScore(g.finalScore)}
-                        </td>
-                        <td className="px-6 py-4 text-center font-mono font-bold text-DEFAULT">
-                          {g.totalScore !== null ? (
-                            g.totalScore
-                          ) : (
-                            <span className="text-slate-500 font-normal">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center font-mono font-bold text-DEFAULT">
-                          {g.totalScore !== null ? (
-                            convertGradeTo4Scale(g.totalScore)
-                          ) : (
-                            <span className="text-slate-500 font-normal">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {g.letterGrade !== null ? (
-                            renderLetterGradeBadge(g.letterGrade)
-                          ) : (
-                            <span className="text-slate-500 font-normal">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {renderStatusBadge(g.status)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* Grouped Semester Grades Blocks */}
+            {(() => {
+              const groupedGrades = grades.reduce((acc, curr) => {
+                const semName = curr.semesterName || "Chưa phân loại học kỳ";
+                if (!acc[semName]) {
+                  acc[semName] = [];
+                }
+                acc[semName].push(curr);
+                return acc;
+              }, {});
+
+              const sortedSemesters = Object.keys(groupedGrades).sort((a, b) => {
+                const extractYear = (name) => {
+                  const match = name.match(/\d{4}/);
+                  return match ? parseInt(match[0]) : 0;
+                };
+                const yearDiff = extractYear(b) - extractYear(a);
+                if (yearDiff !== 0) return yearDiff;
+                return b.localeCompare(a);
+              });
+
+              return sortedSemesters.map((semName) => {
+                const semGrades = groupedGrades[semName];
+                return (
+                  <div key={semName} className="bg-surface border border-border rounded-md shadow-sm mb-8 overflow-hidden animate-fade-in">
+                    {/* Block Header */}
+                    <div className="bg-background/50 px-4 py-3 border-b border-border flex justify-between items-center">
+                      <h3 className="text-sm font-bold text-DEFAULT">
+                        {semName}
+                      </h3>
+                    </div>
+
+                    {/* Table Structure */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-background/50 border-b border-border text-muted text-xs font-semibold uppercase tracking-wider">
+                            <th className="px-6 py-4">Môn học / Lớp HP</th>
+                            <th className="px-6 py-4 text-center">Tín chỉ</th>
+                            <th className="px-6 py-4 text-center">Chuyên cần</th>
+                            <th className="px-6 py-4 text-center">Giữa kỳ</th>
+                            <th className="px-6 py-4 text-center">Cuối kỳ</th>
+                            <th className="px-6 py-4 text-center">Tổng kết (hệ 10)</th>
+                            <th className="px-6 py-4 text-center">Điểm hệ 4</th>
+                            <th className="px-6 py-4 text-center">Điểm chữ</th>
+                            <th className="px-6 py-4 text-center">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border text-sm">
+                          {semGrades.map((g) => (
+                            <tr
+                              key={g._id}
+                              className="hover:bg-background/80 border-b border-border transition duration-150"
+                            >
+                              <td className="px-6 py-4">
+                                <span className="block font-semibold text-DEFAULT">
+                                  {g.subjectName}
+                                </span>
+                                <span className="text-xs text-muted font-mono">
+                                  Lớp: {g.classId}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-center font-mono font-medium text-DEFAULT">
+                                {g.credits}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {renderScore(g.attendanceScore)}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {renderScore(g.midtermScore)}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {renderScore(g.finalScore)}
+                              </td>
+                              <td className="px-6 py-4 text-center font-mono font-bold text-DEFAULT">
+                                {g.totalScore !== null ? (
+                                  g.totalScore
+                                ) : (
+                                  <span className="text-slate-500 font-normal">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-center font-mono font-bold text-DEFAULT">
+                                {g.totalScore !== null ? (
+                                  convertGradeTo4Scale(g.totalScore)
+                                ) : (
+                                  <span className="text-slate-500 font-normal">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {g.letterGrade !== null ? (
+                                  renderLetterGradeBadge(g.letterGrade)
+                                ) : (
+                                  <span className="text-slate-500 font-normal">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {renderStatusBadge(g.status)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </>
         )}
       </div>

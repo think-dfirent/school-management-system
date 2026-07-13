@@ -12,7 +12,7 @@ const getMyGrades = async (req, res) => {
                 path: 'class',
                 populate: [
                     { path: 'subject', select: 'subjectName subjectId credits' },
-                    { path: 'semester', select: 'semesterName' }
+                    { path: 'semester', select: 'semesterName semesterId' }
                 ]
             });
 
@@ -68,6 +68,7 @@ const getMyGrades = async (req, res) => {
                 classId: e.class?.classId || '-',
                 subjectName: e.class?.subject?.subjectName || '-',
                 credits: e.class?.subject?.credits || 0,
+                semesterId: e.class?.semester?.semesterId || '-',
                 semesterName: e.class?.semester?.semesterName || '-',
                 attendanceScore: e.attendanceScore,
                 midtermScore: e.midtermScore,

@@ -15,6 +15,7 @@ import CreateClassForm from './pages/admin/CreateClassForm';
 import NotificationManagement from './pages/admin/NotificationManagement';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SemesterManagement from './pages/admin/SemesterManagement';
+import TuitionManagement from './pages/admin/TuitionManagement';
 import AdminSupportRequests from './pages/admin/AdminSupportRequests';
 import InstructorSupportRequests from './pages/instructor/InstructorSupportRequests';
 import ClassAttendance from './pages/student/ClassAttendance';
@@ -112,6 +113,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <SemesterManagement />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Quản lý học phí (Admin) */}
+            <Route 
+              path="/admin/tuitions" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <TuitionManagement />
                 </ProtectedRoute>
               } 
             />

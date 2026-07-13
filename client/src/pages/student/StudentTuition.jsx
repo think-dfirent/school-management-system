@@ -303,7 +303,7 @@ const StudentTuition = () => {
                     Tổng học phí phải thu
                   </span>
                   <span className="text-xl font-bold font-mono text-DEFAULT mt-1">
-                    {formatVND(activeTotals.grossTuition)}
+                    {formatVND(activeTotals.payableAmount !== undefined ? activeTotals.payableAmount : activeTotals.grossTuition)}
                   </span>
                 </div>
 
@@ -312,7 +312,7 @@ const StudentTuition = () => {
                   <span className="text-xs font-semibold text-muted uppercase">
                     Tổng tiền đã thanh toán
                   </span>
-                  <span className="text-xl font-bold font-mono text-emerald-500 mt-1">
+                  <span className="text-xl font-bold font-mono text-DEFAULT mt-1">
                     {formatVND(activeTotals.paidAmount)}
                   </span>
                 </div>
@@ -323,7 +323,7 @@ const StudentTuition = () => {
                     Còn nợ (Chưa hoàn thành)
                   </span>
                   <span
-                    className={`text-xl font-bold font-mono mt-1 ${activeTotals.debtAmount > 0 ? "text-rose-500" : "text-slate-400"}`}
+                    className={`text-xl font-bold font-mono mt-1 ${activeTotals.debtAmount > 0 ? "text-rose-500" : "text-DEFAULT"}`}
                   >
                     {formatVND(activeTotals.debtAmount)}
                   </span>

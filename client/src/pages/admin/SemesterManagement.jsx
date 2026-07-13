@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Plus, CheckCircle, AlertTriangle, X, Settings } from "lucide-react";
+import { Calendar, Plus, CheckCircle, AlertTriangle, X, Settings, MoreHorizontal, Edit3, BookOpen } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -14,6 +14,7 @@ const SemesterManagement = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSemester, setEditingSemester] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   // Alert toast state (Hoisted to top)
   const [alert, setAlert] = useState({
@@ -205,7 +206,7 @@ const SemesterManagement = () => {
   };
 
   return (
-    <div className="flex-1 w-full flex flex-col bg-background text-DEFAULT transition-colors duration-150">
+    <div className="bg-background min-h-screen text-DEFAULT flex flex-col w-full transition-colors duration-150">
       
       {/* Custom Toast Alert */}
       {alert.show && (
@@ -261,7 +262,7 @@ const SemesterManagement = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-[290px]">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-background/50 border-b border-border text-muted text-xs font-semibold uppercase tracking-wider">
@@ -270,51 +271,83 @@ const SemesterManagement = () => {
                     <th className="px-6 py-4">Thời Gian Học Kỳ</th>
                     <th className="px-6 py-4">Cổng Đăng Ký Tín Chỉ</th>
                     <th className="px-6 py-4 text-center">Trạng Thái Hoạt Động</th>
-                    <th className="px-6 py-4 text-center">Hành Động</th>
+                    <th className="px-6 py-4 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-sm">
                   {semesters.map((sem) => (
                     <tr
                       key={sem._id}
-                      className={`hover:bg-background/80 transition-colors duration-150 ${sem.isActive ? "bg-primary/5" : ""}`}
+                      className="hover:bg-background/80 transition duration-150"
                     >
-                      <td className="px-6 py-4 font-mono text-DEFAULT font-semibold">
+                      <td className="py-3 px-4 align-middle font-mono text-DEFAULT font-semibold">
                         {sem.semesterId}
                       </td>
-                      <td className="px-6 py-4 text-DEFAULT font-semibold">
+                      <td className="py-3 px-4 align-middle text-DEFAULT font-semibold">
                         {sem.semesterName}
                       </td>
-                      <td className="px-6 py-4 text-muted">
+                      <td className="py-3 px-4 align-middle text-muted">
                         Từ: <span className="text-DEFAULT font-medium">{displayDate(sem.startDate)}</span>
                         <br />
                         Đến: <span className="text-DEFAULT font-medium">{displayDate(sem.endDate)}</span>
                       </td>
-                      <td className="px-6 py-4 text-muted">
+                      <td className="py-3 px-4 align-middle text-muted">
                         Mở: <span className="text-DEFAULT font-medium text-xs">{displayDateTime(sem.registrationStartDate)}</span>
                         <br />
                         Đóng: <span className="text-DEFAULT font-medium text-xs">{displayDateTime(sem.registrationEndDate)}</span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="py-3 px-4 align-middle text-center">
                         {sem.isActive ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                             <CheckCircle size={10} className="mr-1" />
                             Đang hoạt động
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-transparent border border-border text-muted">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-transparent border border-border text-muted">
                             Chờ / Đóng
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleEditOpen(sem)}
-                          className="border border-border text-slate-650 dark:text-slate-300 hover:bg-surface rounded-md px-3 py-1.5 text-xs font-semibold transition cursor-pointer flex items-center gap-1 mx-auto"
-                        >
-                          <Settings size={12} />
-                          Sửa cấu hình
-                        </button>
+                      <td className="py-3 px-4 align-middle text-right">
+                        <div className="relative inline-block text-left">
+                          <button
+                            onClick={() => setOpenDropdownId(openDropdownId === sem._id ? null : sem._id)}
+                            className="p-2 rounded-md text-muted hover:text-DEFAULT hover:bg-background transition-colors focus:outline-none cursor-pointer bg-transparent border-none"
+                          >
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+                          {openDropdownId === sem._id && (
+                            <>
+                              {/* Click outside backdrop */}
+                              <div
+                                className="fixed inset-0 z-40 cursor-default"
+                                onClick={() => setOpenDropdownId(null)}
+                              />
+                              <div className="absolute right-0 w-56 bg-surface border border-border rounded-md shadow-xl z-50 overflow-hidden text-left animate-in fade-in duration-150 top-full mt-1 origin-top">
+                                <button
+                                  onClick={() => {
+                                    navigate('/admin/classes?semesterId=' + sem.semesterId);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                                >
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                  Lớp học phần mở trong kỳ
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleEditOpen(sem);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-muted hover:text-DEFAULT hover:bg-background transition-colors flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                                >
+                                  <Settings className="w-3.5 h-3.5" />
+                                  Sửa cấu hình
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

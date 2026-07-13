@@ -14,8 +14,21 @@ const CourseRegistration = () => {
   const [availableClasses, setAvailableClasses] = useState([]);
   const [enrolledClasses, setEnrolledClasses] = useState([]);
   const [semesterName, setSemesterName] = useState("");
+  const [registrationStartDate, setRegistrationStartDate] = useState(null);
+  const [registrationEndDate, setRegistrationEndDate] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const isRegistrationOpen = registrationStartDate && registrationEndDate
+    ? new Date() >= new Date(registrationStartDate) && new Date() <= new Date(registrationEndDate)
+    : false;
+
+  const formatDateTime = (dateVal) => {
+    if (!dateVal) return "";
+    const d = new Date(dateVal);
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  };
 
   // Toast alert state (Hoisted to top)
   const [alert, setAlert] = useState({
@@ -45,12 +58,16 @@ const CourseRegistration = () => {
         availableClasses: avail,
         enrolledClasses: enrolled,
         semesterName: sem,
+        registrationStartDate: start,
+        registrationEndDate: end,
         message: msg,
       } = response.data;
       setIsOpen(openStatus);
       setAvailableClasses(avail || []);
       setEnrolledClasses(enrolled || []);
       setSemesterName(sem || "");
+      setRegistrationStartDate(start || null);
+      setRegistrationEndDate(end || null);
       setMessage(msg || "");
     } catch {
       showAlert("Lỗi khi tải danh sách đăng ký tín chỉ!", "error");
@@ -69,6 +86,10 @@ const CourseRegistration = () => {
 
   // Perform registration call
   const handleRegister = async (classId) => {
+    if (!isRegistrationOpen) {
+      showAlert("Thao tác thất bại: Cổng đăng ký tín chỉ hiện không mở trong thời gian này.", "error");
+      return;
+    }
     try {
       await axios.post(
         "http://localhost:5000/api/registrations",
@@ -87,6 +108,10 @@ const CourseRegistration = () => {
 
   // Perform cancellation call
   const handleCancel = async (classId) => {
+    if (!isRegistrationOpen) {
+      showAlert("Thao tác thất bại: Cổng đăng ký tín chỉ hiện không mở trong thời gian này.", "error");
+      return;
+    }
     const confirmed = window.confirm(
       "Bạn có chắc chắn muốn hủy đăng ký lớp học phần này? Hành động này không thể hoàn tác.",
     );
@@ -152,14 +177,14 @@ const CourseRegistration = () => {
               Đang tải thông tin đăng ký...
             </span>
           </div>
-        ) : !isOpen ? (
+        ) : !semesterName ? (
           <div className="bg-surface border border-border rounded-md p-12 text-center shadow-sm animate-in fade-in duration-200">
             <AlertTriangle className="w-12 h-12 text-primary mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-DEFAULT">
-              Hệ thống đã khóa đăng ký
+              Không có học kỳ đăng ký
             </h2>
             <p className="text-muted mt-2 text-sm max-w-md mx-auto font-medium">
-              {message ? message : "Đã hết thời gian đăng ký học phần."}
+              Hiện tại không có học kỳ tuyển sinh nào đang được mở.
             </p>
           </div>
         ) : (
@@ -173,11 +198,20 @@ const CourseRegistration = () => {
                 <h2 className="text-xl font-extrabold text-primary mt-0.5">
                   {semesterName ? semesterName : "Học kỳ đăng ký tín chỉ"}
                 </h2>
+                {registrationStartDate && registrationEndDate && (
+                  <p className="text-xs text-muted mt-1 font-semibold">
+                    Thời gian mở cổng: {formatDateTime(registrationStartDate)} - {formatDateTime(registrationEndDate)}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
-                <span className="text-xs font-semibold text-muted">
-                  Cổng đăng ký đang mở
+                <span className={`w-2.5 h-2.5 rounded-full ${isRegistrationOpen ? "bg-emerald-500 animate-ping" : "bg-rose-500"}`}></span>
+                <span className="text-xs font-bold">
+                  {isRegistrationOpen ? (
+                    <span className="text-emerald-500">Cổng đăng ký đang mở</span>
+                  ) : (
+                    <span className="text-rose-500">Cổng đăng ký đã đóng</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -262,12 +296,14 @@ const CourseRegistration = () => {
                                   </span>
                                 ) : (
                                   <button
-                                    onClick={() => handleRegister(cls._id)}
-                                    disabled={isFull}
+                                    onClick={() => !isRegistrationOpen ? null : handleRegister(cls._id)}
+                                    disabled={isFull || !isRegistrationOpen}
                                     className={`px-4 py-1.5 text-xs font-semibold rounded-md shadow-sm transition duration-150 ${
-                                      isFull 
-                                        ? "bg-background border border-border text-muted cursor-not-allowed" 
-                                        : "bg-primary hover:bg-primary/90 text-white cursor-pointer border-none"
+                                      !isRegistrationOpen
+                                        ? "bg-slate-500 cursor-not-allowed opacity-50 text-white border-none"
+                                        : isFull 
+                                          ? "bg-background border border-border text-muted cursor-not-allowed" 
+                                          : "bg-primary hover:bg-primary/90 text-white cursor-pointer border-none"
                                     }`}
                                   >
                                     {isFull ? "Lớp đầy" : "Đăng ký"}
@@ -336,12 +372,22 @@ const CourseRegistration = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <button
-                                onClick={() => handleCancel(cls._id)}
-                                className="border border-primary/30 text-primary hover:bg-primary/10 rounded-md px-3.5 py-1.5 text-xs font-semibold transition duration-150 cursor-pointer"
-                              >
-                                Hủy đăng ký
-                              </button>
+                              {isRegistrationOpen ? (
+                                <button
+                                  onClick={() => handleCancel(cls._id)}
+                                  className="border border-primary/30 text-primary hover:bg-primary/10 rounded-md px-3.5 py-1.5 text-xs font-semibold transition duration-150 cursor-pointer"
+                                >
+                                  Hủy đăng ký
+                                </button>
+                              ) : (
+                                <button
+                                  disabled
+                                  title="Đã qua thời gian hủy học phần"
+                                  className="border border-border bg-background text-muted rounded-md px-3.5 py-1.5 text-xs font-semibold cursor-not-allowed opacity-60"
+                                >
+                                  Không thể hủy
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

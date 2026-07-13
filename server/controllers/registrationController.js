@@ -1,6 +1,9 @@
 const Enrollment = require('../models/Enrollment');
 const Class = require('../models/Class');
 const Semester = require('../models/Semester');
+const Tuition = require('../models/Tuition');
+
+const CREDIT_PRICE = 480000;
 
 // 1. get du lieu register subject (GET /api/registrations)
 const getRegistrationData = async (req, res) => {
@@ -12,6 +15,9 @@ const getRegistrationData = async (req, res) => {
         if (!activeSemester) {
             return res.status(200).json({
                 isOpen: false,
+                availableClasses: [],
+                enrolledClasses: [],
+                semesterName: "Không có học kỳ",
                 message: "Đã hết thời gian đăng ký học phần."
             });
         }
@@ -19,13 +25,6 @@ const getRegistrationData = async (req, res) => {
         // check time hien tai
         const now = new Date();
         const isOpen = now >= activeSemester.registrationStartDate && now <= activeSemester.registrationEndDate;
-
-        if (!isOpen) {
-            return res.status(200).json({
-                isOpen: false,
-                message: "Đã hết thời gian đăng ký học phần."
-            });
-        }
 
         // Tim tat ca lop hoc phan mo trong semester nay
         const availableClasses = await Class.find({ semester: activeSemester._id })
@@ -52,10 +51,12 @@ const getRegistrationData = async (req, res) => {
             .filter(c => c !== null);
 
         res.status(200).json({
-            isOpen: true,
+            isOpen,
             availableClasses,
             enrolledClasses,
-            semesterName: activeSemester.semesterName
+            semesterName: activeSemester.semesterName,
+            registrationStartDate: activeSemester.registrationStartDate,
+            registrationEndDate: activeSemester.registrationEndDate
         });
 
     } catch (error) {
@@ -83,9 +84,10 @@ const registerClass = async (req, res) => {
 
         // Validation 1 (Time check): Re-check if the registration window is open
         const now = new Date();
-        const isOpen = now >= activeSemester.registrationStartDate && now <= activeSemester.registrationEndDate;
-        if (!isOpen) {
-            return res.status(400).json({ message: "Đã hết thời gian đăng ký học phần." });
+        if (now < activeSemester.registrationStartDate || now > activeSemester.registrationEndDate) {
+            return res.status(403).json({ 
+                message: 'Thao tác thất bại: Cổng đăng ký tín chỉ hiện không mở trong thời gian này.' 
+            });
         }
 
         // Validation 2 (Duplicate - Exception 4.3): Check if an enrollment already exists
@@ -142,6 +144,36 @@ const registerClass = async (req, res) => {
         // Tang so luong student hien tai trong lop (update nguyen tu)
         await Class.findByIdAndUpdate(classId, { $inc: { currentStudents: 1 } });
 
+        // Update hoc phi cho hoc sinh (Tuition)
+        const credits = targetClass.subject?.credits || 0;
+        const addedFee = credits * CREDIT_PRICE;
+        const updatedTuition = await Tuition.findOneAndUpdate(
+            { student: studentId, semester: activeSemester._id },
+            {
+                $inc: {
+                    totalFee: addedFee,
+                    payableAmount: addedFee,
+                    debtAmount: addedFee
+                },
+                $setOnInsert: {
+                    discount: 0,
+                    paidAmount: 0
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        if (updatedTuition) {
+            if (updatedTuition.debtAmount <= 0) {
+                updatedTuition.status = 'paid';
+            } else if (updatedTuition.paidAmount > 0) {
+                updatedTuition.status = 'partial';
+            } else {
+                updatedTuition.status = 'unpaid';
+            }
+            await updatedTuition.save();
+        }
+
         res.status(201).json({ message: 'Đăng ký thành công', enrollment: newEnrollment });
 
     } catch (error) {
@@ -174,9 +206,10 @@ const cancelRegistration = async (req, res) => {
 
         // check han time register (Validation 1)
         const now = new Date();
-        const isOpen = now >= activeSemester.registrationStartDate && now <= activeSemester.registrationEndDate;
-        if (!isOpen) {
-            return res.status(400).json({ message: "Đã hết thời gian thao tác. Bạn không thể hủy học phần lúc này!" });
+        if (now < activeSemester.registrationStartDate || now > activeSemester.registrationEndDate) {
+            return res.status(403).json({ 
+                message: 'Thao tác thất bại: Cổng đăng ký tín chỉ hiện không mở trong thời gian này.' 
+            });
         }
 
         // check su ton tai cua Don register (Validation 2)
@@ -184,6 +217,9 @@ const cancelRegistration = async (req, res) => {
             student: studentId,
             class: classId,
             semester: activeSemester._id
+        }).populate({
+            path: 'class',
+            populate: { path: 'subject' }
         });
 
         if (!enrollment) {
@@ -195,6 +231,37 @@ const cancelRegistration = async (req, res) => {
 
         // update lai so luong student hien tai cua lop hoc phan
         await Class.findByIdAndUpdate(classId, { $inc: { currentStudents: -1 } });
+
+        // Update giam hoc phi cho hoc sinh (Tuition)
+        const credits = enrollment.class?.subject?.credits || 0;
+        const deductedFee = credits * CREDIT_PRICE;
+        if (deductedFee > 0) {
+            const updatedTuition = await Tuition.findOneAndUpdate(
+                { student: studentId, semester: activeSemester._id },
+                {
+                    $inc: {
+                        totalFee: -deductedFee,
+                        payableAmount: -deductedFee,
+                        debtAmount: -deductedFee
+                    }
+                },
+                { new: true }
+            );
+
+            if (updatedTuition) {
+                if (updatedTuition.debtAmount < 0) {
+                    updatedTuition.debtAmount = 0;
+                }
+                if (updatedTuition.debtAmount <= 0) {
+                    updatedTuition.status = 'paid';
+                } else if (updatedTuition.paidAmount > 0) {
+                    updatedTuition.status = 'partial';
+                } else {
+                    updatedTuition.status = 'unpaid';
+                }
+                await updatedTuition.save();
+            }
+        }
 
         res.status(200).json({ message: "Hủy đăng ký thành công!" });
     } catch (error) {
