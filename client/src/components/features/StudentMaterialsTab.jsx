@@ -54,12 +54,15 @@ const StudentMaterialsTab = ({ classId }) => {
       );
 
       if (res.data && res.data.fileUrl) {
-        // Open file link in new window for download/preview window.open(res.data.fileUrl, '_blank');
+        // Open file link in new window for download/preview
+        window.open(res.data.fileUrl, '_blank');
       }
     } catch (err) {
       if (err.response && err.response.status === 404) {
-        // Display exactly the backend's error message: "Khong the load materials luc nay. File khong ton tai hoac da bi delete!" showAlert(err.response.data.message || 'Không thể tải tài liệu lúc này. File không tồn tại hoặc đã bị xóa!', 'error');
-        // Refresh list automatically to prune the dead item fetchMaterials();
+        // Display exactly the backend's error message: "Khong the load materials luc nay. File khong ton tai hoac da bi delete!"
+        showAlert(err.response.data.message || 'Không thể tải tài liệu lúc này. File không tồn tại hoặc đã bị xóa!', 'error');
+        // Refresh list automatically to prune the dead item
+        fetchMaterials();
       } else {
         showAlert("Lỗi khi tải file. Vui lòng thử lại!", "error");
       }
