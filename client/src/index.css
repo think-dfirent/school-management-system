@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: rgb(var(--bg-background));
+  --color-surface: rgb(var(--bg-surface));
+  --color-border: rgb(var(--border-color));
+  --color-primary: rgb(var(--brand-primary));
+  --color-primary-hover: #BE123C;
+  
+  --color-DEFAULT: rgb(var(--text-primary));
+  --color-muted: rgb(var(--text-muted));
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --shadow-enterprise: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+:root {
+  --bg-background: 248 250 252; /* slate-50 */
+  --bg-surface: 255 255 255; /* white */
+  --text-primary: 15 23 42; /* slate-900 */
+  --text-muted: 100 116 139; /* slate-500 */
+  --border-color: 226 232 240; /* slate-200 */
+  --brand-primary: 225 29 72; /* Modern Red / Rose-600 */
+}
+
+.dark {
+  --bg-background: 17 17 17; /* SentinelOne deep dark */
+  --bg-surface: 26 26 26; /* SentinelOne card dark */
+  --text-primary: 241 245 249; /* slate-100 */
+  --text-muted: 148 163 184; /* slate-400 */
+  --border-color: 51 51 51; /* subtle dark border */
+  --brand-primary: 190 18 40;
+}
+
+body {
+  background-color: rgb(var(--bg-background));
+  color: rgb(var(--text-primary));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global Toast Alerts Stacking Context Elevation */
+.fixed.top-5.right-5 {
+  z-index: 9999 !important;
+}
+
+/* Modal Backdrop Stack Context */
+.fixed.inset-0.bg-black\/60,
+.fixed.inset-0.bg-slate-950\/70 {
+  z-index: 50 !important;
+}
