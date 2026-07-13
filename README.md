@@ -139,7 +139,21 @@ npm run dev
 npm start
 ```
 
-### 2. Client Configuration
+### 2. Database Seeding
+
+Before running the system, populate the database with mock records (Admin, Instructors, Students, Semesters, Subjects, and Classes) by executing the seeding script:
+
+```bash
+# Navigate to server if not already there
+cd server
+
+# Run the seeding script
+node seed.js
+```
+
+This will clear existing collections and insert fresh, clean mock data for development and testing.
+
+### 3. Client Configuration
 
 Navigate into the client folder:
 
