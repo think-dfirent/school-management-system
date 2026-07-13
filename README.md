@@ -11,8 +11,8 @@ A modern, enterprise-grade School Management web application designed for admini
 - Secure JWT-based authentication system.
 - Three major access levels (Role-Based Access Control):
   - **Admin**: Overall control of users, semesters, subjects, classes, notifications, and analytics.
-  - **Giảng viên (Instructor)**: View schedules, manage class attendance rosters, grade materials, submit support requests.
-  - **Sinh viên (Student)**: Register for classes/credits, view course schedules, check attendance records, view academic transcripts, download documents, and submit student support requests.
+  - **Instructor**: View schedules, manage class attendance rosters, grade materials, submit support requests.
+  - **Student**: Register for classes/credits, view course schedules, check attendance records, view academic transcripts, download documents, and submit student support requests.
 
 ### Admin Dashboard & Management
 
